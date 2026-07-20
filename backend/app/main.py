@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db_session
 from app.schemas import UserCreate
 from app.models import User 
-from app.utils import hash_password
+from app.utils import hash_password, verify_password
+from app.schemas import UserLogin
+
 
 app = FastAPI()
 
@@ -53,3 +55,29 @@ def register(
         "message": "User registered successfully!",
         "user_id": new_user.id
         }
+
+@app.post("/login")
+def login(
+    user: UserLogin,
+    db: Session = Depends(get_db_session)
+):
+
+    # checking if the email is valid
+    db_user = db.query(User).filter(User.email == user.email).first()
+
+    if not db_user:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+
+    # checking if pass is valid
+
+    if not verify_password(user.password, db_user.password_hash):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+
+    return{"message" : "Login successful"}
+    
